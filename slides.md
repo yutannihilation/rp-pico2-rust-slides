@@ -13,7 +13,7 @@ favicon: /favicon.ico
 #  ogImage: https://cover.sli.dev
 ---
 
-# Raspberry Pi Pico 2 を Rust で動かす。
+# Raspberry Pi Pico 2 を<br/>Rust で動かす。
 
 2025/07/23
 
@@ -120,14 +120,21 @@ image: "/probe.jpg"
 
 ---
 
+# TODO: rp-hal vs Embassy vs RTIC、みたいな説明をこの辺に書く
+
+
+---
+
 # `probe-rs`
 
-- 
+- ARM・RISC-V のチップにはデバッグ用のインターフェースがあり、`probe-rs` はそれと通信するためのツール
+- RP235x のデバッグ用のインターフェース（ARM Debug Interface v6）にも今年2月に対応した
 
 ---
 
 # `rp235x-hal`
 
+- HAL（ハードウェア抽象化レイヤー）
 - 
 
 ---
