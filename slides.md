@@ -70,7 +70,7 @@ backgroundSize: 70%
 
 <v-clicks>
 
-→ 正直、初心者が Pico 2 を選ぶ理由はほぼない
+→ 正直、初心者は Pico で十分！
 
 </v-clicks>
 
@@ -192,8 +192,8 @@ error: could not compile `rp235x-project-template` (bin "rp235x-project-template
 # Embassy
 
 - 組み込み Rust で非同期処理をやるためのフレームワーク
-- HAL も独自の crate を使っていて、rp-hal 系に依存していない
-
+- HAL も独自の crate を使っていて、rp-hal 系に（直接は）依存していない
+- 活発に開発されているので信頼感がある
 
 ---
 
@@ -210,14 +210,14 @@ error: could not compile `rp235x-project-template` (bin "rp235x-project-template
 # 非同期処理、必要？
 
 - 出力だけ、入力だけなら必要ないことが多そう
-- 入力も出力もあるときはたぶん使いたくなる（例：ツマミの捻り具合によって LED の光らせ方を変えたい）
-
+- 入力も出力もあるときはたぶん使いたくなる（例：ツマミのひねり具合によって LED の光らせ方を変えたい）
 
 ---
 
 # Programmable I/O（PIO）
 
-- CPU から独立してピンの入出力を操作する仕組み
+- CPU から独立して動くステートマシン
+- GPIO ピンを操作できる
 - 独自言語でプログラミングする
 - 単純な命令しか実行できないが、工夫すれば通信プロトコルなども PIO だけで捌けたりする
 
@@ -247,7 +247,7 @@ image: "/encoder.jpg"
 
 # PIO コード
 
-- pin 1, 2 を使うとする
+- ピンを2つ使う
 
 ```
 wait 1 pin 1
@@ -260,8 +260,7 @@ push
 
 # PIO コード
 
-- pin 1 が HIGH → LOW になるのを待つ  
-  （つまり、立ち下がりを検出している）
+- ピン1が HIGH → LOW になるのを待つ  
 
 ``` {1,2}
 wait 1 pin 1
@@ -272,7 +271,8 @@ push
 
 <v-clicks>
 
-- このとき、pin 2 が HIGH か LOW かが回転の方向によって違う
+- つまり、立ち下がりを検出している
+- このとき、ピン2が HIGH か LOW かが回転の方向によって違う
 
 </v-clicks>
 
@@ -281,7 +281,7 @@ push
 
 # PIO コード
 
-- pin の値を 2 つ Input Shift Registerに書き込む
+- ピンの値を 2 つ Input Shift Registerに書き込む
 
 ``` {3}
 wait 1 pin 1
@@ -289,6 +289,12 @@ wait 0 pin 1
 in pins, 2
 push
 ```
+
+<v-clicks>
+
+- 知りたいのはピン2だけだが、`in` 命令は一気に読むしかできないので、 ピン1も読んでいる
+
+</v-clicks>
 
 ---
 
@@ -303,14 +309,70 @@ in pins, 2
 push
 ```
 
-<v-clicks>
+---
 
-- 知りたいのは pin 2 だけだが、`in` 命令は一気に読むしかできないので、 pin 1 も読んでいる
+# Rust コード
 
-</v-clicks>
+- ピン1の値は必ず0（なぜなら、ピン1がLOWになったタイミングで読んでいるので）
+- なので、`(ピン1、ピン2)` の値は `00` か `01` かどちらか
+
+```rs
+match self.sm.rx().wait_pull().await {
+    0 => return Direction::CounterClockwise,
+    1 => return Direction::Clockwise,
+    _ => {}
+}
+```
+
+---
+
+# もっと詳しく知りたい人はこれを
+
+- <https://zenn.dev/yutannihilation/articles/365eb6e3648f13>
+
+<Transform :scale="0.8">
+
+![](/zenn.png)
+
+</Transform>
+
+---
+
+# PIO のいいところ
+
+- I/O をいっぱい扱えるようになる
+- 得体の知れない言語なので「ハードウェアをやってる感」がある
+
+---
+
+# PIO を使ってやろうとしてること
+
+- 7セグLEDを100個くらい同時に制御したい
+- 単にオンオフじゃなくて、セグメントごとに PWM で輝度を変えたい
+
+---
+layout: section
+---
+
+# こんな感じ
 
 ---
 
 <SlidevVideo autoplay controls>
   <source src="/7seg.mp4" type="video/mp4" />
 </SlidevVideo>
+
+---
+
+# 何をやってるか
+
+- 1つの7セグLEDを動かすのにピンが7～8本必要
+- Pico 2 の GPIO は 26 個しかないので足りない
+
+<v-clicks>
+
+- シフトレジスタ IC をうまく使ってIOを増やしたい
+- いっぱいつなぐと遅くなるので、PIO で高速化
+- とりあえず1個は動いたのでいっぱい数珠つなぎにしていくぞ！というところで2年間くらい放置している
+
+</v-clicks>
