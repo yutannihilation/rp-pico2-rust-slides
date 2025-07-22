@@ -58,11 +58,15 @@ backgroundSize: 70%
 
 # Pico → Pico 2 の違い
 
-- RP2040 → RP2350A
-- 全体的に性能強化
+## メリット
+
+- 性能強化
 - セキュリティ機能の強化
-- 価格も少し高い
-- 注意点：[GPIO のプルダウン入力モードがうまく動かない](https://aloseed.com/it/pico-vs-pico2/)というけっこう深刻なバグがある
+
+## デメリット
+
+- 価格が少し高い
+- [GPIO のプルダウン入力モードがうまく動かない](https://aloseed.com/it/pico-vs-pico2/)という困ったバグがある
 
 <v-clicks>
 
@@ -125,14 +129,10 @@ image: "/probe.jpg"
 
 # 必要なツール・フレームワーク
 
-- [`probe-rs`](https://probe.rs/): デバッグ
-- [`rp235x-hal`](https://crates.io/crates/rp235x-hal): HAL
-- [`rp235x-project-template`](https://github.com/rp-rs/rp235x-project-template): テンプレート
+- [probe-rs](https://probe.rs/): デバッグ
+- [rp235x-hal](https://crates.io/crates/rp235x-hal): HAL
+- [rp235x-project-template](https://github.com/rp-rs/rp235x-project-template): テンプレート
 - [Embassy](https://embassy.dev/): 組み込み Rust で非同期処理を行うためのフレームワーク
-
----
-
-# TODO: rp-hal vs Embassy vs RTIC、みたいな説明をこの辺に書く
 
 
 ---
@@ -141,28 +141,176 @@ image: "/probe.jpg"
 
 - ARM・RISC-V のチップにはデバッグ用のインターフェースがあり、`probe-rs` はそれと通信するためのツール
 - RP235x のデバッグ用のインターフェース（ARM Debug Interface v6）にも今年2月に対応した
+- VS Code 拡張もあって快適
 
 ---
 
 # `rp235x-hal`
 
-- HAL（ハードウェア抽象化レイヤー）
-- 
+- HAL（ハードウェアへのアクセスを抽象化してくれるやつ）
 
 ---
 
 # `rp235x-project-template`
 
-- 
+- 必要な設定ファイルなどをあらかじめ配置したテンプレート
+- 以下のコマンドを実行するだけ...かと思いきや、
+
+```sh
+cargo generate --git \
+  https://github.com/rp-rs/rp235x-project-template
+```
+
+---
+
+# `rp235x-project-template`
+
+```
+error: unsafe attribute used without unsafe
+  --> src\main.rs:77:3
+   |
+77 | #[link_section = ".bi_entries"]
+   |   ^^^^^^^^^^^^ usage of unsafe attribute
+   |
+help: wrap the attribute in `unsafe(...)`
+   |
+77 | #[unsafe(link_section = ".bi_entries")]
+   |   +++++++                            +
+
+error: could not compile `rp235x-project-template` (bin "rp235x-project-template") due to 1 previous error
+```
+
+---
+
+# `rp235x-project-template`
+
+- (Rust 2024 対応できてないだけで、だいたい動くはず...)
+
 
 ---
 
 # Embassy
 
-- 
+- 組み込み Rust で非同期処理をやるためのフレームワーク
+- HAL も独自の crate を使っていて、rp-hal 系に依存していない
+
 
 ---
 
-# Programmable I/O
+# Embassy vs RTIC
 
-- 
+<Transform :scale="0.8">
+
+![](/rtic_vs_embassy.jpg)
+
+</Transform>
+
+---
+
+# 非同期処理、必要？
+
+- 出力だけ、入力だけなら必要ないことが多そう
+- 入力も出力もあるときはたぶん使いたくなる（例：ツマミの捻り具合によって LED の光らせ方を変えたい）
+
+
+---
+
+# Programmable I/O（PIO）
+
+- CPU から独立してピンの入出力を操作する仕組み
+- 独自言語でプログラミングする
+- 単純な命令しか実行できないが、工夫すれば通信プロトコルなども PIO だけで捌けたりする
+
+---
+layout: image-right
+image: "/encoder.jpg"
+---
+
+# 例：ロータリーエンコーダー
+
+- どっち方向にも無限に回るツマミ
+- 複数の極が出ていて、その位相の違いで回転の方向を把握する
+
+---
+
+# ロータリーエンコーダーのデータシート
+
+- C.W. = 時計回り、C.C.W. = 反時計回り
+
+<Transform :scale="0.8">
+
+![](/datasheet.png)
+
+</Transform>
+
+---
+
+# PIO コード
+
+- pin 1, 2 を使うとする
+
+```
+wait 1 pin 1
+wait 0 pin 1
+in pins, 2
+push
+```
+
+---
+
+# PIO コード
+
+- pin 1 が HIGH → LOW になるのを待つ  
+  （つまり、立ち下がりを検出している）
+
+``` {1,2}
+wait 1 pin 1
+wait 0 pin 1
+in pins, 2
+push
+```
+
+<v-clicks>
+
+- このとき、pin 2 が HIGH か LOW かが回転の方向によって違う
+
+</v-clicks>
+
+
+---
+
+# PIO コード
+
+- pin の値を 2 つ Input Shift Registerに書き込む
+
+``` {3}
+wait 1 pin 1
+wait 0 pin 1
+in pins, 2
+push
+```
+
+---
+
+# PIO コード
+
+- ISR の値を RX FIFO に書き込む
+
+``` {4}
+wait 1 pin 1
+wait 0 pin 1
+in pins, 2
+push
+```
+
+<v-clicks>
+
+- 知りたいのは pin 2 だけだが、`in` 命令は一気に読むしかできないので、 pin 1 も読んでいる
+
+</v-clicks>
+
+---
+
+<SlidevVideo autoplay controls>
+  <source src="/7seg.mp4" type="video/mp4" />
+</SlidevVideo>
