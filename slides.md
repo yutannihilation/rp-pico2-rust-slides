@@ -33,13 +33,23 @@ backgroundSize: 70%
 
 ## 自己紹介:
 
-- ニンジャスレイヤーが好きです。
+- 自己紹介をここに書く。
+
+---
+
+# Raspberry Pi Pico とは
+
+- Raspberry Pi 財団が出しているマイコンボード
+- Raspberry Pi と違って Linux が動いたりはしない
+- 安い（発売当初は 500 円くらいだった。円安...）
+- C 以外に MicroPython や Rust でも動かせる
+- Programmable I/O というユニークな機能がある（後述）
 
 ---
 
 # Raspberry Pi Pico 2 とは
 
-- Raspberry Pi Pico の後継機
+- Raspberry Pi Pico の上位機種
 - 2024年8月に発売
 - 公式にサポートされているのは C/C++ での開発だが、そろそろ Rust まわりも整ってきた
   - 発売前から Rust 開発者にチップが提供されていた
@@ -108,6 +118,8 @@ image: "/probe.jpg"
 
 - プログラムを流し込むだけならなくてもいい。
 - が、これがないとプリントデバッグすらできないので、開発体験の差が激しい。実質必須。
+- 自作も簡単だが、初心者はとりあえず1つは買ったほうが気が楽。
+  - 動かない時の切り分け対象が減る
 
 ---
 
@@ -146,5 +158,11 @@ image: "/probe.jpg"
 ---
 
 # Embassy
+
+- 
+
+---
+
+# Programmable I/O
 
 - 
